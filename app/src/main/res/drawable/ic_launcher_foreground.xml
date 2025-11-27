@@ -1,0 +1,45 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Aidstack Field Icon: Location pin with warning + stack layers -->
+
+    <!-- Main location pin (White) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,32C44.06,32 36,40.06 36,50c0,15 18,36 18,36s18,-21 18,-36C72,40.06 63.94,32 54,32z"/>
+
+    <!-- Inner circle for warning symbol (Emergency Orange background) -->
+    <path
+        android:fillColor="#FF6B35"
+        android:pathData="M54,42c-4.42,0 -8,3.58 -8,8c0,4.42 3.58,8 8,8c4.42,0 8,-3.58 8,-8C62,45.58 58.42,42 54,42z"/>
+
+    <!-- Warning exclamation mark (White) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,45c-0.83,0 -1.5,0.67 -1.5,1.5v5c0,0.83 0.67,1.5 1.5,1.5s1.5,-0.67 1.5,-1.5v-5C55.5,45.67 54.83,45 54,45z"/>
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54.5m-1.5,0a1.5,1.5 0,1,1 3,0a1.5,1.5 0,1,1 -3,0"/>
+
+    <!-- Stack layers (representing Aidstack brand) - bottom -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.4"
+        android:pathData="M40,76h28v3h-28z"/>
+
+    <!-- Stack layers - middle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6"
+        android:pathData="M43,70h22v3h-22z"/>
+
+    <!-- Stack layers - top -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.8"
+        android:pathData="M46,64h16v3h-16z"/>
+</vector>
