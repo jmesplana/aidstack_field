@@ -11,7 +11,9 @@ import java.util.*
 object ReportExporter {
 
     /**
-     * Export reports to CSV format
+     * Export reports to CSV format optimized for QGIS import
+     * QGIS can import this CSV directly using "Add Delimited Text Layer"
+     * with Longitude as X field and Latitude as Y field
      */
     fun exportToCSV(context: Context, reports: List<FieldReport>): File? {
         try {
@@ -19,26 +21,35 @@ object ReportExporter {
             val file = File(context.filesDir, fileName)
 
             file.bufferedWriter().use { writer ->
-                // Write CSV header
-                writer.write("ID,Timestamp,Date/Time,Latitude,Longitude,Category,Severity,Title,Description,Photos,Synced\n")
+                // Write CSV header - QGIS friendly column names
+                writer.write("ID,Timestamp,DateTime,Longitude,Latitude,Category,Severity,Status,Title,Description,PhotoCount,LastUpdated,Synced,WKT\n")
 
                 // Write report data
                 reports.forEach { report ->
                     val dateTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                         .format(Date(report.timestamp))
 
+                    val lastUpdatedTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                        .format(Date(report.lastUpdated))
+
+                    // WKT (Well-Known Text) format for point geometry - QGIS native format
+                    val wkt = "POINT(${report.longitude} ${report.latitude})"
+
                     val row = listOf(
-                        report.localId,
+                        escapeCSV(report.localId),
                         report.timestamp.toString(),
-                        dateTime,
-                        report.latitude.toString(),
-                        report.longitude.toString(),
-                        report.category.displayName,
-                        report.severity.displayName,
+                        escapeCSV(dateTime),
+                        report.longitude.toString(),  // X coordinate (Longitude first for QGIS)
+                        report.latitude.toString(),   // Y coordinate (Latitude second)
+                        escapeCSV(report.category.displayName),
+                        escapeCSV(report.severity.displayName),
+                        escapeCSV(report.status.displayName),
                         escapeCSV(report.title),
                         escapeCSV(report.description),
                         report.photoUris.size.toString(),
-                        if (report.isSynced) "Yes" else "No"
+                        escapeCSV(lastUpdatedTime),
+                        if (report.isSynced) "Yes" else "No",
+                        escapeCSV(wkt)
                     ).joinToString(",")
 
                     writer.write("$row\n")

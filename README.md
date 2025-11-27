@@ -32,7 +32,8 @@ Aidstack Field enables field teams to document damage assessments, medical needs
 - **Report Clustering**: Easily identify areas with multiple reports
 
 ### Data Management
-- **CSV Export**: Export all field reports to CSV format for analysis and coordination
+- **CSV Export**: Export all field reports to QGIS-compatible CSV format for GIS analysis and mapping
+- **QGIS Integration**: CSV includes WKT (Well-Known Text) geometry format and proper coordinate fields for direct import
 - **Report Sharing**: Share individual reports or location data via messaging apps, email, or other channels
 - **Statistics Dashboard**: View summary statistics of field operations
 - **Photo Compression**: Automatic image compression reduces storage requirements by up to 70%
@@ -115,6 +116,20 @@ Hurricane Melissa has made landfall in Jamaica, causing widespread damage across
 
 ### Units
 Toggle between Metric and Imperial units in Settings for speed, altitude, and distance measurements.
+
+### QGIS Import
+To import field reports into QGIS for spatial analysis:
+
+1. Export reports as CSV from the Reports tab (Share icon → Export as CSV)
+2. Share/save the CSV file to your computer
+3. In QGIS, go to Layer → Add Layer → Add Delimited Text Layer
+4. Select the exported CSV file
+5. Choose "Point coordinates" as Geometry Definition
+6. Set X field to "Longitude" and Y field to "Latitude"
+7. Set Geometry CRS to "EPSG:4326 - WGS 84"
+8. Click "Add" to import the layer
+
+The CSV includes all report details (category, severity, status, description) as attribute fields that can be used for styling, filtering, and analysis in QGIS. The WKT column provides an alternative geometry import method.
 
 ## Permissions
 
