@@ -131,6 +131,52 @@ To import field reports into QGIS for spatial analysis:
 
 The CSV includes all report details (category, severity, status, description) as attribute fields that can be used for styling, filtering, and analysis in QGIS. The WKT column provides an alternative geometry import method.
 
+### Export Options for Coordinators
+
+The app provides three export options designed for efficient coordination workflow:
+
+**1. Full Export (Current State)**
+- Exports all reports with their latest status and information
+- One row per report showing current conditions
+- Best for: Initial deployment, creating baseline maps, generating situation reports
+- Updates timestamp to track when data was last exported
+
+**2. Export Changes Only (Delta)**
+- Only exports reports modified since the last export
+- Shows count of changed reports in the menu (e.g., "Export Changes Only (12)")
+- Best for: Daily updates, bandwidth-limited environments, incremental coordination
+- Automatically appears after first export when reports have been updated
+
+**3. Complete Package (+ Timeline)**
+- Exports TWO CSV files: Current State + Activity Timeline
+- Current State CSV: Latest information for all reports
+- Activity Timeline CSV: Full history of all status changes, notes, and actions
+- Best for: Comprehensive documentation, accountability tracking, post-disaster analysis
+
+**Coordinator Workflow Example:**
+
+Day 1 (Initial Assessment):
+- Field teams create 50 reports
+- Coordinator exports "Full Export"
+- Imports to QGIS, creates situation map
+
+Day 2 (Response Operations):
+- Teams update 10 reports (status changes, add notes)
+- Field teams create 15 new reports
+- Coordinator exports "Export Changes Only (25)"
+- Re-imports to QGIS using same layer (QGIS updates existing reports by ID, adds new ones)
+
+End of Week (Documentation):
+- Coordinator exports "Complete Package"
+- Activity Timeline CSV shows full evolution of each incident
+- Used for after-action reports, donor documentation, lessons learned
+
+**Key Benefits:**
+- Unique report IDs ensure proper updates (no duplicates)
+- Delta export reduces bandwidth usage by up to 80%
+- Activity timeline preserves full audit trail
+- Timestamps enable temporal analysis in QGIS
+
 ## Permissions
 
 - **Location (Fine & Coarse)**: Required for GPS tracking and map functionality

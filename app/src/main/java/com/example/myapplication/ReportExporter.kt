@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
 import com.example.myapplication.fieldreport.FieldReport
+import com.example.myapplication.fieldreport.ReportUpdate
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -173,6 +174,135 @@ object ReportExporter {
                 appendLine("  ${category.icon} ${category.displayName}: $count")
             }
         }
+    }
+
+    /**
+     * Export activity timeline to CSV format for tracking report evolution
+     * Shows one row per update/status change with full history
+     */
+    fun exportActivityTimelineToCSV(
+        context: Context,
+        reports: List<FieldReport>,
+        updates: Map<String, List<ReportUpdate>>
+    ): File? {
+        try {
+            val fileName = "activity_timeline_${System.currentTimeMillis()}.csv"
+            val file = File(context.filesDir, fileName)
+
+            file.bufferedWriter().use { writer ->
+                // Write CSV header
+                writer.write("ReportID,ReportTitle,UpdateID,UpdateType,Timestamp,DateTime,Status,UpdateText,PhotoCount,Longitude,Latitude,Category,Severity\n")
+
+                // Write activity data
+                reports.forEach { report ->
+                    val reportUpdates = updates[report.localId] ?: emptyList()
+
+                    reportUpdates.forEach { update ->
+                        val dateTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                            .format(Date(update.timestamp))
+
+                        val row = listOf(
+                            escapeCSV(report.localId),
+                            escapeCSV(report.title),
+                            escapeCSV(update.id),
+                            escapeCSV(update.updateType.displayName),
+                            update.timestamp.toString(),
+                            escapeCSV(dateTime),
+                            escapeCSV(update.newStatus?.displayName ?: report.status.displayName),
+                            escapeCSV(update.text),
+                            update.photoUris.size.toString(),
+                            report.longitude.toString(),
+                            report.latitude.toString(),
+                            escapeCSV(report.category.displayName),
+                            escapeCSV(report.severity.displayName)
+                        ).joinToString(",")
+
+                        writer.write("$row\n")
+                    }
+                }
+            }
+
+            return file
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
+    }
+
+    /**
+     * Export reports modified since a given timestamp (delta export)
+     */
+    fun exportDeltaToCSV(context: Context, reports: List<FieldReport>, sinceTimestamp: Long): File? {
+        val modifiedReports = reports.filter { it.lastUpdated > sinceTimestamp }
+        return if (modifiedReports.isNotEmpty()) {
+            exportToCSV(context, modifiedReports)
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Export complete package: current state + activity timeline
+     * Returns a list of files (reports CSV + activity CSV)
+     */
+    fun exportCompletePackage(
+        context: Context,
+        reports: List<FieldReport>,
+        updates: Map<String, List<ReportUpdate>>
+    ): List<File> {
+        val files = mutableListOf<File>()
+
+        // Export current state
+        exportToCSV(context, reports)?.let { files.add(it) }
+
+        // Export activity timeline
+        exportActivityTimelineToCSV(context, reports, updates)?.let { files.add(it) }
+
+        return files
+    }
+
+    /**
+     * Share multiple CSV files via Android share intent
+     */
+    fun shareMultipleCSVs(context: Context, files: List<File>): Intent? {
+        try {
+            val uris = files.map { file ->
+                FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+            }
+
+            val shareIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "text/csv"
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+                putExtra(Intent.EXTRA_SUBJECT, "Field Reports Export Package")
+                putExtra(Intent.EXTRA_TEXT, "Complete field reports package: current state + activity timeline")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            return Intent.createChooser(shareIntent, "Share Reports Package")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
+    }
+
+    /**
+     * Get last export timestamp from SharedPreferences
+     */
+    fun getLastExportTimestamp(context: Context): Long {
+        val prefs = context.getSharedPreferences("report_export", Context.MODE_PRIVATE)
+        return prefs.getLong("last_export_timestamp", 0L)
+    }
+
+    /**
+     * Update last export timestamp
+     */
+    fun updateLastExportTimestamp(context: Context, timestamp: Long = System.currentTimeMillis()) {
+        val prefs = context.getSharedPreferences("report_export", Context.MODE_PRIVATE)
+        prefs.edit().putLong("last_export_timestamp", timestamp).apply()
     }
 
     /**

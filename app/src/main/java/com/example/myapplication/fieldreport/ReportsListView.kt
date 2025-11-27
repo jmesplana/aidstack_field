@@ -32,10 +32,15 @@ import java.util.*
 fun ReportsListView(
     reports: List<FieldReport>,
     onReportClick: (FieldReport) -> Unit,
-    onCreateReport: () -> Unit
+    onCreateReport: () -> Unit,
+    onExportFull: () -> Unit = {},
+    onExportDelta: () -> Unit = {},
+    onExportPackage: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showExportMenu by remember { mutableStateOf(false) }
+    val lastExportTimestamp = ReportExporter.getLastExportTimestamp(context)
+    val hasModifiedReports = reports.any { it.lastUpdated > lastExportTimestamp }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -81,19 +86,41 @@ fun ReportsListView(
                             onDismissRequest = { showExportMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Export as CSV") },
+                                text = { Text("Full Export (Current State)") },
                                 leadingIcon = {
                                     Icon(Icons.Default.FileDownload, null)
                                 },
                                 onClick = {
                                     showExportMenu = false
-                                    val csvFile = ReportExporter.exportToCSV(context, reports)
-                                    csvFile?.let { file ->
-                                        val shareIntent = ReportExporter.shareCSV(context, file)
-                                        shareIntent?.let { context.startActivity(it) }
-                                    }
+                                    onExportFull()
                                 }
                             )
+                            if (hasModifiedReports && lastExportTimestamp > 0) {
+                                DropdownMenuItem(
+                                    text = {
+                                        val modifiedCount = reports.count { it.lastUpdated > lastExportTimestamp }
+                                        Text("Export Changes Only ($modifiedCount)")
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Update, null)
+                                    },
+                                    onClick = {
+                                        showExportMenu = false
+                                        onExportDelta()
+                                    }
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text("Complete Package (+ Timeline)") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.FolderZip, null)
+                                },
+                                onClick = {
+                                    showExportMenu = false
+                                    onExportPackage()
+                                }
+                            )
+                            Divider()
                             DropdownMenuItem(
                                 text = { Text("Share Summary") },
                                 leadingIcon = {

@@ -386,6 +386,38 @@ fun LocationScreen(
                                     },
                                     onCreateReport = {
                                         showCreateReportDialog = true
+                                    },
+                                    onExportFull = {
+                                        scope.launch {
+                                            val csvFile = ReportExporter.exportToCSV(context, fieldReports)
+                                            csvFile?.let { file ->
+                                                ReportExporter.updateLastExportTimestamp(context)
+                                                val shareIntent = ReportExporter.shareCSV(context, file)
+                                                shareIntent?.let { context.startActivity(it) }
+                                            }
+                                        }
+                                    },
+                                    onExportDelta = {
+                                        scope.launch {
+                                            val lastExport = ReportExporter.getLastExportTimestamp(context)
+                                            val csvFile = ReportExporter.exportDeltaToCSV(context, fieldReports, lastExport)
+                                            csvFile?.let { file ->
+                                                ReportExporter.updateLastExportTimestamp(context)
+                                                val shareIntent = ReportExporter.shareCSV(context, file)
+                                                shareIntent?.let { context.startActivity(it) }
+                                            }
+                                        }
+                                    },
+                                    onExportPackage = {
+                                        scope.launch {
+                                            val updatesMap = fieldReportViewModel.getAllUpdatesMap()
+                                            val files = ReportExporter.exportCompletePackage(context, fieldReports, updatesMap)
+                                            if (files.isNotEmpty()) {
+                                                ReportExporter.updateLastExportTimestamp(context)
+                                                val shareIntent = ReportExporter.shareMultipleCSVs(context, files)
+                                                shareIntent?.let { context.startActivity(it) }
+                                            }
+                                        }
                                     }
                                 )
                             }

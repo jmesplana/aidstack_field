@@ -214,4 +214,9 @@ class FieldReportViewModel(application: Application) : AndroidViewModel(applicat
     fun getUnsyncedReportsCount(): Int {
         return _reports.value.count { !it.isSynced }
     }
+
+    suspend fun getAllUpdatesMap(): Map<String, List<ReportUpdate>> {
+        val allUpdates = updateDao.getAllUpdatesSync()
+        return allUpdates.groupBy { it.reportId }
+    }
 }

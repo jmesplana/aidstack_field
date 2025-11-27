@@ -11,6 +11,9 @@ interface ReportUpdateDao {
     @Query("SELECT * FROM report_updates WHERE reportId = :reportId ORDER BY timestamp DESC")
     suspend fun getUpdatesForReportSync(reportId: String): List<ReportUpdate>
 
+    @Query("SELECT * FROM report_updates ORDER BY timestamp DESC")
+    suspend fun getAllUpdatesSync(): List<ReportUpdate>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUpdate(update: ReportUpdate)
 
