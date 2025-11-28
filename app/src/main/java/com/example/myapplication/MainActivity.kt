@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.fieldreport.FieldReport
 import com.example.myapplication.fieldreport.FieldReportViewModel
@@ -173,7 +174,12 @@ fun LocationScreen(
             )
         }
     ) { paddingValues ->
-        if (!hasPermission) {
+        // Offline Maps Screen (Full screen replacement)
+        if (showOfflineMaps) {
+            OfflineMapsView(
+                onBack = { showOfflineMaps = false }
+            )
+        } else if (!hasPermission) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -389,33 +395,66 @@ fun LocationScreen(
                                     },
                                     onExportFull = {
                                         scope.launch {
-                                            val csvFile = ReportExporter.exportToCSV(context, fieldReports)
-                                            csvFile?.let { file ->
-                                                ReportExporter.updateLastExportTimestamp(context)
-                                                val shareIntent = ReportExporter.shareCSV(context, file)
-                                                shareIntent?.let { context.startActivity(it) }
+                                            try {
+                                                val csvFile = ReportExporter.exportToCSV(context, fieldReports)
+                                                if (csvFile != null) {
+                                                    ReportExporter.updateLastExportTimestamp(context)
+                                                    val shareIntent = ReportExporter.shareCSV(context, csvFile)
+                                                    if (shareIntent != null) {
+                                                        context.startActivity(shareIntent)
+                                                    } else {
+                                                        Toast.makeText(context, "Failed to create share intent", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                } else {
+                                                    Toast.makeText(context, "Failed to export CSV", Toast.LENGTH_SHORT).show()
+                                                }
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Export error: ${e.message}", Toast.LENGTH_LONG).show()
+                                                e.printStackTrace()
                                             }
                                         }
                                     },
                                     onExportDelta = {
                                         scope.launch {
-                                            val lastExport = ReportExporter.getLastExportTimestamp(context)
-                                            val csvFile = ReportExporter.exportDeltaToCSV(context, fieldReports, lastExport)
-                                            csvFile?.let { file ->
-                                                ReportExporter.updateLastExportTimestamp(context)
-                                                val shareIntent = ReportExporter.shareCSV(context, file)
-                                                shareIntent?.let { context.startActivity(it) }
+                                            try {
+                                                val lastExport = ReportExporter.getLastExportTimestamp(context)
+                                                val csvFile = ReportExporter.exportDeltaToCSV(context, fieldReports, lastExport)
+                                                if (csvFile != null) {
+                                                    ReportExporter.updateLastExportTimestamp(context)
+                                                    val shareIntent = ReportExporter.shareCSV(context, csvFile)
+                                                    if (shareIntent != null) {
+                                                        context.startActivity(shareIntent)
+                                                    } else {
+                                                        Toast.makeText(context, "Failed to create share intent", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                } else {
+                                                    Toast.makeText(context, "No modified reports to export", Toast.LENGTH_SHORT).show()
+                                                }
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Export error: ${e.message}", Toast.LENGTH_LONG).show()
+                                                e.printStackTrace()
                                             }
                                         }
                                     },
                                     onExportPackage = {
                                         scope.launch {
-                                            val updatesMap = fieldReportViewModel.getAllUpdatesMap()
-                                            val files = ReportExporter.exportCompletePackage(context, fieldReports, updatesMap)
-                                            if (files.isNotEmpty()) {
-                                                ReportExporter.updateLastExportTimestamp(context)
-                                                val shareIntent = ReportExporter.shareMultipleCSVs(context, files)
-                                                shareIntent?.let { context.startActivity(it) }
+                                            try {
+                                                val updatesMap = fieldReportViewModel.getAllUpdatesMap()
+                                                val files = ReportExporter.exportCompletePackage(context, fieldReports, updatesMap)
+                                                if (files.isNotEmpty()) {
+                                                    ReportExporter.updateLastExportTimestamp(context)
+                                                    val shareIntent = ReportExporter.shareMultipleCSVs(context, files)
+                                                    if (shareIntent != null) {
+                                                        context.startActivity(shareIntent)
+                                                    } else {
+                                                        Toast.makeText(context, "Failed to create share intent", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                } else {
+                                                    Toast.makeText(context, "Failed to export package", Toast.LENGTH_SHORT).show()
+                                                }
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Export error: ${e.message}", Toast.LENGTH_LONG).show()
+                                                e.printStackTrace()
                                             }
                                         }
                                     }
@@ -520,13 +559,6 @@ fun LocationScreen(
                         Text("Close")
                     }
                 }
-            )
-        }
-
-        // Offline Maps Screen
-        if (showOfflineMaps) {
-            OfflineMapsView(
-                onBack = { showOfflineMaps = false }
             )
         }
 

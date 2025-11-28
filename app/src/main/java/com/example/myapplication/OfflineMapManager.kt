@@ -1,10 +1,12 @@
 package com.example.myapplication
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.cachemanager.CacheManager
@@ -99,11 +101,15 @@ class OfflineMapManager(private val context: Context) {
                     maxZoom,
                     object : CacheManager.CacheManagerCallback {
                         override fun onTaskComplete() {
-                            _downloadState.value = DownloadState.Completed
+                            CoroutineScope(Dispatchers.Main).launch {
+                                _downloadState.value = DownloadState.Completed
+                            }
                         }
 
                         override fun onTaskFailed(errors: Int) {
-                            _downloadState.value = DownloadState.Error("Download failed with $errors errors")
+                            CoroutineScope(Dispatchers.Main).launch {
+                                _downloadState.value = DownloadState.Error("Download failed with $errors errors")
+                            }
                         }
 
                         override fun updateProgress(
@@ -112,11 +118,15 @@ class OfflineMapManager(private val context: Context) {
                             zoomMin: Int,
                             zoomMax: Int
                         ) {
-                            _downloadState.value = DownloadState.Downloading(progress, tileCount)
+                            CoroutineScope(Dispatchers.Main).launch {
+                                _downloadState.value = DownloadState.Downloading(progress, tileCount)
+                            }
                         }
 
                         override fun downloadStarted() {
-                            _downloadState.value = DownloadState.Downloading(0, tileCount)
+                            CoroutineScope(Dispatchers.Main).launch {
+                                _downloadState.value = DownloadState.Downloading(0, tileCount)
+                            }
                         }
 
                         override fun setPossibleTilesInArea(total: Int) {

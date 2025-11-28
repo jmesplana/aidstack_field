@@ -155,24 +155,88 @@ object ReportExporter {
         val totalReports = reports.size
         val bySeverity = reports.groupBy { it.severity }.mapValues { it.value.size }
         val byCategory = reports.groupBy { it.category }.mapValues { it.value.size }
+        val byStatus = reports.groupBy { it.status }.mapValues { it.value.size }
         val unsynced = reports.count { !it.isSynced }
 
+        // Date range
+        val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+        val oldestReport = reports.minByOrNull { it.timestamp }
+        val newestReport = reports.maxByOrNull { it.timestamp }
+
+        // Calculate priority counts
+        val criticalCount = bySeverity[com.example.myapplication.fieldreport.ReportSeverity.CRITICAL] ?: 0
+        val highCount = bySeverity[com.example.myapplication.fieldreport.ReportSeverity.HIGH] ?: 0
+        val urgentTotal = criticalCount + highCount
+
         return buildString {
-            appendLine("FIELD REPORTS SUMMARY")
-            appendLine("━━━━━━━━━━━━━━━━━━━━")
+            appendLine("═══════════════════════════════════")
+            appendLine("    FIELD REPORTS SUMMARY")
+            appendLine("═══════════════════════════════════")
             appendLine()
-            appendLine("Total Reports: $totalReports")
-            appendLine("Unsynced: $unsynced")
-            appendLine()
-            appendLine("By Severity:")
-            bySeverity.forEach { (severity, count) ->
-                appendLine("  ${severity.displayName}: $count")
+
+            appendLine("📊 OVERVIEW")
+            appendLine("   Total Reports: $totalReports")
+            appendLine("   Unsynced: $unsynced")
+            if (oldestReport != null && newestReport != null) {
+                appendLine("   Period: ${dateFormat.format(Date(oldestReport.timestamp))}")
+                appendLine("           to ${dateFormat.format(Date(newestReport.timestamp))}")
             }
             appendLine()
-            appendLine("By Category:")
-            byCategory.forEach { (category, count) ->
-                appendLine("  ${category.icon} ${category.displayName}: $count")
+
+            appendLine("🚨 PRIORITY STATUS")
+            appendLine("   Critical: $criticalCount")
+            appendLine("   High: $highCount")
+            appendLine("   → Urgent Total: $urgentTotal")
+            appendLine()
+
+            appendLine("📈 BY SEVERITY")
+            // Sort by severity priority
+            val severityOrder = listOf(
+                com.example.myapplication.fieldreport.ReportSeverity.CRITICAL,
+                com.example.myapplication.fieldreport.ReportSeverity.HIGH,
+                com.example.myapplication.fieldreport.ReportSeverity.MEDIUM,
+                com.example.myapplication.fieldreport.ReportSeverity.LOW,
+                com.example.myapplication.fieldreport.ReportSeverity.INFO
+            )
+            severityOrder.forEach { severity ->
+                val count = bySeverity[severity] ?: 0
+                if (count > 0) {
+                    val percentage = (count * 100.0 / totalReports).toInt()
+                    appendLine("   ${severity.displayName.padEnd(12)} $count ($percentage%)")
+                }
             }
+            appendLine()
+
+            appendLine("📋 BY STATUS")
+            // Sort by status workflow
+            val statusOrder = listOf(
+                com.example.myapplication.fieldreport.ReportStatus.NEW,
+                com.example.myapplication.fieldreport.ReportStatus.ASSESSED,
+                com.example.myapplication.fieldreport.ReportStatus.IN_PROGRESS,
+                com.example.myapplication.fieldreport.ReportStatus.NEEDS_SUPPLIES,
+                com.example.myapplication.fieldreport.ReportStatus.RESOLVED,
+                com.example.myapplication.fieldreport.ReportStatus.CLOSED
+            )
+            statusOrder.forEach { status ->
+                val count = byStatus[status] ?: 0
+                if (count > 0) {
+                    appendLine("   ${status.icon} ${status.displayName.padEnd(15)} $count")
+                }
+            }
+            appendLine()
+
+            appendLine("🏷️  BY CATEGORY")
+            byCategory.entries
+                .sortedByDescending { it.value }
+                .forEach { (category, count) ->
+                    val percentage = (count * 100.0 / totalReports).toInt()
+                    appendLine("   ${category.icon} ${category.displayName.padEnd(20)} $count ($percentage%)")
+                }
+            appendLine()
+            appendLine("═══════════════════════════════════")
+            appendLine("Generated: ${dateFormat.format(Date())}")
+            appendLine("Source: Aidstack Field")
+            appendLine("═══════════════════════════════════")
         }
     }
 

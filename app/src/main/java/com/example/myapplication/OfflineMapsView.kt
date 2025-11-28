@@ -30,8 +30,21 @@ fun OfflineMapsView(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var cacheSize by remember { mutableStateOf(offlineMapManager.getCacheSize()) }
     var selectedQuality by remember { mutableStateOf("Medium") }
+    var showCustomRegionDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     val scrollState = rememberScrollState()
+
+    // Filter regions based on search
+    val filteredRegions = remember(searchQuery) {
+        if (searchQuery.isBlank()) {
+            OfflineMapManager.PREDEFINED_REGIONS.keys.sorted()
+        } else {
+            OfflineMapManager.PREDEFINED_REGIONS.keys
+                .filter { it.contains(searchQuery, ignoreCase = true) }
+                .sorted()
+        }
+    }
 
     // Quality levels (zoom)
     val qualityOptions = mapOf(
@@ -50,8 +63,8 @@ fun OfflineMapsView(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color(0xFF1A365D)
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -67,7 +80,7 @@ fun OfflineMapsView(
             // Network warning
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFFF8E1)
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -78,18 +91,18 @@ fun OfflineMapsView(
                     Icon(
                         Icons.Default.Info,
                         contentDescription = null,
-                        tint = Color(0xFFF57C00)
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Column {
                         Text(
                             "Offline Maps",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF57C00)
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
                             "Download maps for areas you'll visit. Use WiFi to avoid data charges.",
                             fontSize = 14.sp,
-                            color = Color(0xFF795548)
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                 }
@@ -98,7 +111,7 @@ fun OfflineMapsView(
             // Current cache status
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -112,13 +125,13 @@ fun OfflineMapsView(
                                 "Downloaded Maps",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1E293B)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 offlineMapManager.formatCacheSize(cacheSize),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1A365D)
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                         if (offlineMapManager.isCacheAvailable()) {
@@ -128,7 +141,7 @@ fun OfflineMapsView(
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = "Delete cached maps",
-                                    tint = Color(0xFFEF4444)
+                                    tint = MaterialTheme.colorScheme.error
                                 )
                             }
                         }
@@ -139,7 +152,7 @@ fun OfflineMapsView(
             // Download quality selection
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -147,7 +160,7 @@ fun OfflineMapsView(
                         "Map Quality",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
@@ -166,33 +179,76 @@ fun OfflineMapsView(
                             Text(
                                 quality,
                                 fontSize = 14.sp,
-                                color = Color(0xFF475569)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                     Text(
                         "Higher quality = more storage needed",
                         fontSize = 12.sp,
-                        color = Color(0xFF94A3B8),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
 
-            // Region selection
-            Text(
-                "Select Region to Download",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+            // Region selection header with search and custom button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Select Region",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                TextButton(onClick = { showCustomRegionDialog = true }) {
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Custom", fontSize = 14.sp)
+                }
+            }
+
+            // Search bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search regions...") },
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Clear, "Clear search")
+                        }
+                    }
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
             )
 
-            OfflineMapManager.PREDEFINED_REGIONS.keys.sorted().forEach { regionName ->
+            // Show result count
+            if (searchQuery.isNotEmpty()) {
+                Text(
+                    "${filteredRegions.size} region${if (filteredRegions.size != 1) "s" else ""} found",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+
+            filteredRegions.forEach { regionName ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = if (selectedRegion == regionName)
-                            Color(0xFFE0F2FE) else Color.White
+                            MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant
                     ),
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
@@ -208,12 +264,16 @@ fun OfflineMapsView(
                                 regionName,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1E293B)
+                                color = if (selectedRegion == regionName)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 "Est. ${offlineMapManager.estimateDownloadSize(regionName, qualityOptions[selectedQuality]!!)}",
                                 fontSize = 12.sp,
-                                color = Color(0xFF64748B)
+                                color = if (selectedRegion == regionName)
+                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
                         }
 
@@ -230,7 +290,8 @@ fun OfflineMapsView(
                             },
                             enabled = downloadState is DownloadState.Idle || downloadState is DownloadState.Completed,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1A365D)
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
                             Icon(
@@ -250,18 +311,23 @@ fun OfflineMapsView(
                 is DownloadState.Preparing -> {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F2FE))
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                             Text(
                                 "Preparing download...",
                                 fontSize = 14.sp,
-                                color = Color(0xFF0C4A6E)
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }
@@ -269,7 +335,9 @@ fun OfflineMapsView(
                 is DownloadState.Downloading -> {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F2FE))
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(
@@ -280,18 +348,19 @@ fun OfflineMapsView(
                                     "Downloading $selectedRegion...",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF0C4A6E)
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
                                     "${state.progress}/${state.total}",
                                     fontSize = 12.sp,
-                                    color = Color(0xFF64748B)
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                 )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             LinearProgressIndicator(
                                 progress = if (state.total > 0) state.progress.toFloat() / state.total.toFloat() else 0f,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -299,7 +368,9 @@ fun OfflineMapsView(
                 is DownloadState.Completed -> {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7))
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        )
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -308,12 +379,12 @@ fun OfflineMapsView(
                             Icon(
                                 Icons.Default.CheckCircle,
                                 contentDescription = null,
-                                tint = Color(0xFF16A34A)
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                             Text(
                                 "Download completed! Maps available offline.",
                                 fontSize = 14.sp,
-                                color = Color(0xFF166534)
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                         }
                     }
@@ -321,7 +392,9 @@ fun OfflineMapsView(
                 is DownloadState.Error -> {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2))
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -330,12 +403,12 @@ fun OfflineMapsView(
                             Icon(
                                 Icons.Default.Error,
                                 contentDescription = null,
-                                tint = Color(0xFFDC2626)
+                                tint = MaterialTheme.colorScheme.onErrorContainer
                             )
                             Text(
                                 "Error: ${state.message}",
                                 fontSize = 14.sp,
-                                color = Color(0xFF991B1B)
+                                color = MaterialTheme.colorScheme.onErrorContainer
                             )
                         }
                     }
@@ -361,7 +434,7 @@ fun OfflineMapsView(
                         showDeleteConfirmation = false
                     },
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = Color(0xFFDC2626)
+                        contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
                     Text("Delete")
@@ -369,6 +442,100 @@ fun OfflineMapsView(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Custom region dialog
+    if (showCustomRegionDialog) {
+        var north by remember { mutableStateOf("") }
+        var south by remember { mutableStateOf("") }
+        var east by remember { mutableStateOf("") }
+        var west by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showCustomRegionDialog = false },
+            title = { Text("Custom Region") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Enter bounding box coordinates:",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = north,
+                        onValueChange = { north = it },
+                        label = { Text("North Latitude") },
+                        placeholder = { Text("e.g., 18.6") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = south,
+                        onValueChange = { south = it },
+                        label = { Text("South Latitude") },
+                        placeholder = { Text("e.g., 17.6") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = east,
+                        onValueChange = { east = it },
+                        label = { Text("East Longitude") },
+                        placeholder = { Text("e.g., -76.1") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = west,
+                        onValueChange = { west = it },
+                        label = { Text("West Longitude") },
+                        placeholder = { Text("e.g., -78.6") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Text(
+                        "Tip: Use bboxfinder.com to find coordinates",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val northVal = north.toDoubleOrNull()
+                        val southVal = south.toDoubleOrNull()
+                        val eastVal = east.toDoubleOrNull()
+                        val westVal = west.toDoubleOrNull()
+
+                        if (northVal != null && southVal != null && eastVal != null && westVal != null) {
+                            showCustomRegionDialog = false
+                            scope.launch {
+                                offlineMapManager.downloadCustomRegion(
+                                    north = northVal,
+                                    south = southVal,
+                                    east = eastVal,
+                                    west = westVal,
+                                    maxZoom = qualityOptions[selectedQuality]!!
+                                )
+                                cacheSize = offlineMapManager.getCacheSize()
+                            }
+                        }
+                    },
+                    enabled = north.toDoubleOrNull() != null &&
+                            south.toDoubleOrNull() != null &&
+                            east.toDoubleOrNull() != null &&
+                            west.toDoubleOrNull() != null
+                ) {
+                    Text("Download")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomRegionDialog = false }) {
                     Text("Cancel")
                 }
             }
