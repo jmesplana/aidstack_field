@@ -23,9 +23,12 @@ class OfflineMapManager(private val context: Context) {
     private var cacheManager: CacheManager? = null
 
     init {
-        val mapView = MapView(context)
-        mapView.setTileSource(TileSourceFactory.MAPNIK)
-        cacheManager = CacheManager(mapView)
+        // Initialize on main thread
+        CoroutineScope(Dispatchers.Main).launch {
+            val mapView = MapView(context)
+            mapView.setTileSource(TileSourceFactory.MAPNIK)
+            cacheManager = CacheManager(mapView)
+        }
     }
 
     // Predefined regions for quick selection
@@ -79,7 +82,23 @@ class OfflineMapManager(private val context: Context) {
         maxZoom: Int = DEFAULT_MAX_ZOOM
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            _downloadState.value = DownloadState.Preparing
+            withContext(Dispatchers.Main) {
+                _downloadState.value = DownloadState.Preparing
+            }
+
+            // Wait for cacheManager to be initialized
+            var retries = 0
+            while (cacheManager == null && retries < 50) {
+                kotlinx.coroutines.delay(100)
+                retries++
+            }
+
+            if (cacheManager == null) {
+                withContext(Dispatchers.Main) {
+                    _downloadState.value = DownloadState.Error("Failed to initialize map manager")
+                }
+                return@withContext Result.failure(Exception("CacheManager not initialized"))
+            }
 
             val boundingBox = BoundingBox(north, east, south, west)
 
@@ -138,7 +157,9 @@ class OfflineMapManager(private val context: Context) {
 
             Result.success(Unit)
         } catch (e: Exception) {
-            _downloadState.value = DownloadState.Error(e.message ?: "Unknown error")
+            withContext(Dispatchers.Main) {
+                _downloadState.value = DownloadState.Error(e.message ?: "Unknown error")
+            }
             Result.failure(e)
         }
     }
